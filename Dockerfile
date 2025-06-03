@@ -2,20 +2,20 @@ FROM n8nio/n8n:latest
 
 USER root
 
-# Install basic dependencies
-RUN apk update && apk add curl unzip git bash libc6-compat
-
-# Download Ollama from GitHub release (latest working method)
-RUN curl -Lo ollama.tar.gz https://github.com/jmorganca/ollama/releases/latest/download/ollama-linux.tar.gz && \
-    tar -xzf ollama.tar.gz && \
-    mv ollama /usr/local/bin/ollama && \
-    chmod +x /usr/local/bin/ollama && \
-    rm -f ollama.tar.gz
+# Install basic Linux dependencies
+RUN apk update && apk add --no-cache curl bash git libc6-compat
 
 # Install firecrawl-mcp globally
 RUN npm install -g firecrawl-mcp
 
+# Install Ollama CLI from official source
+RUN curl -L https://ollama.com/download/Ollama-linux -o /usr/local/bin/ollama && \
+    chmod +x /usr/local/bin/ollama
+
+# Create a script that will start both Ollama and n8n
+RUN echo '#!/bin/bash\nollama serve &\nsleep 5\nollama pull llama3.2 || echo "Failed to pull model llama3.2"\nn8n' > /entrypoint.sh && chmod +x /entrypoint.sh
+
 USER node
 
-# Run both ollama and n8n in the same container
-CMD sh -c "ollama serve & n8n"
+# Start script: Run Ollama then n8n
+CMD ["/bin/bash", "/entrypoint.sh"]
