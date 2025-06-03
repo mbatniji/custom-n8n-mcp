@@ -2,22 +2,20 @@ FROM n8nio/n8n:latest
 
 USER root
 
-# Install dependencies for Ollama (Alpine-based)
-RUN apk update && apk add curl unzip git bash
+# Install basic dependencies
+RUN apk update && apk add curl unzip git bash libc6-compat
 
-# Install Ollama
-RUN curl -fsSL https://ollama.com/download/ollama-linux-amd64 -o /usr/local/bin/ollama && \
-    chmod +x /usr/local/bin/ollama
+# Download Ollama from GitHub release (latest working method)
+RUN curl -Lo ollama.tar.gz https://github.com/jmorganca/ollama/releases/latest/download/ollama-linux.tar.gz && \
+    tar -xzf ollama.tar.gz && \
+    mv ollama /usr/local/bin/ollama && \
+    chmod +x /usr/local/bin/ollama && \
+    rm -f ollama.tar.gz
 
-# Start Ollama in background to pull the model
-RUN ollama serve & \
-    sleep 5 && \
-    ollama pull llama3.2
-
-# Install MCP client
+# Install firecrawl-mcp globally
 RUN npm install -g firecrawl-mcp
 
 USER node
 
-# Run both ollama and n8n
+# Run both ollama and n8n in the same container
 CMD sh -c "ollama serve & n8n"
