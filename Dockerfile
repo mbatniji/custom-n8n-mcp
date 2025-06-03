@@ -1,21 +1,28 @@
+﻿# ========== المرحلة الأولى: تحميل ollama من الصورة الرسمية ==========
+FROM ollama/ollama:latest AS ollama-builder
+
+# ========== المرحلة الثانية: بناء n8n مع ollama ==========
 FROM n8nio/n8n:latest
 
 USER root
 
-# Install basic Linux dependencies
+# تثبيت الأدوات المطلوبة
 RUN apk update && apk add --no-cache curl bash git libc6-compat
 
-# Install firecrawl-mcp globally
+# تثبيت firecrawl-mcp
 RUN npm install -g firecrawl-mcp
 
-# Install Ollama CLI from official source
-RUN curl -L https://ollama.com/download/Ollama-linux -o /usr/local/bin/ollama && \
-    chmod +x /usr/local/bin/ollama
+# نسخ برنامج ollama من المرحلة الأولى
+COPY --from=ollama-builder /usr/bin/ollama /usr/local/bin/ollama
 
-# Create a script that will start both Ollama and n8n
-RUN echo '#!/bin/bash\nollama serve &\nsleep 5\nollama pull llama3.2 || echo "Failed to pull model llama3.2"\nn8n' > /entrypoint.sh && chmod +x /entrypoint.sh
+# إنشاء سكربت تشغيل يجمع ollama + n8n
+RUN echo '#!/bin/bash\\n\
+ollama serve &\\n\
+sleep 5\\n\
+ollama pull llama3.2 || echo "Failed to pull llama3.2"\\n\
+n8n' > /entrypoint.sh && chmod +x /entrypoint.sh
 
 USER node
 
-# Start script: Run Ollama then n8n
+# تشغيل السكربت عند بدء الحاوية
 CMD ["/bin/bash", "/entrypoint.sh"]
